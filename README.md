@@ -1,9 +1,7 @@
 # 🐾 Oxyde Lynx Kernel
 ### Fast • Fluid • Focused — The Heart of Oxyde Desktop
 
-**Oxyde Lynx Kernel** is a custom-tuned Linux kernel derived from **XanMod 6.16.x**, optimized for **Aero-style compositing** and ultra-low memory usage (< 1 GB total desktop footprint).  
-It powers **Oxyde Desktop** and **LinX OS**, blending modern Linux performance with the responsive, glass-smooth feel of classic macOS and early-2000s UX design.
-
+**Oxyde Lynx Kernel** is a custom-tuned Linux kernel derived from **XanMod 6.16.x**, optimized for **Aero-style compositing** and ultra-low memory usage (< 1 GB total desktop footprint).
 ---
 
 ## ✨ Key Features
