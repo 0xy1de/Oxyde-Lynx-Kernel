@@ -1,4 +1,6 @@
 # Maintainer: Nick Chiaravalle <chirv@oxy2k.org>
+# path to the kernel root (one level up from LYNX)
+_local_src="${startdir}/.."
 pkgbase=linux-oxyde-lynx
 pkgname=('linux-oxyde-lynx' 'linux-oxyde-lynx-headers')
 pkgver=6.16.7
