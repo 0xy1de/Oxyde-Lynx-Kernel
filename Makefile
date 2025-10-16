@@ -2,8 +2,8 @@
 VERSION = 6
 PATCHLEVEL = 16
 SUBLEVEL = 12
-EXTRAVERSION =
-NAME = Baby Opossum Posse
+EXTRAVERSION = -ox1
+NAME = Oxyde Lynx
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
