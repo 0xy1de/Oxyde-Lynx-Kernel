@@ -1,6 +1,7 @@
 # Maintainer: Nick Chiaravalle <chirv@oxy2k.org>
 # Local-dev PKGBUILD for Oxyde Lynx — uses your local repo (no network fetch)
-
+# path to the kernel root (one level up from LYNX)
+_local_src="${startdir}/.."
 pkgbase=linux-oxyde-lynx
 pkgname=('linux-oxyde-lynx' 'linux-oxyde-lynx-headers')
 pkgver=6.16.7
@@ -27,12 +28,19 @@ _local_src="${HOME}/source/oxyde-lynx-kernel"   # should be a full Linux source 
 
 prepare() {
   cd "${srcdir}"
-
-  # Link your local kernel source into $srcdir
   rm -rf linux-xanmod
-  ln -s "${_local_src}" linux-xanmod
+  ln -s "${_local_src}" linux-xanmod  # points to ../ (kernel root)
 
   cd linux-xanmod
+  # use your baseline config, then merge our preset
+  [[ -f .config ]] || { [[ -f /boot/config-$(uname -r) ]] && cp /boot/config-$(uname -r) .config; }
+  if [[ -x scripts/kconfig/merge_config.sh && -f "${startdir}/oxyde-universal.config" ]]; then
+    scripts/kconfig/merge_config.sh -m .config "${startdir}/oxyde-universal.config"
+  else
+    cp "${startdir}/oxyde-universal.config" .config
+  fi
+  make olddefconfig
+}
 
   # Prefer your tree’s version; fall back to provided pkgver if missing
   if [[ -r Makefile ]]; then
