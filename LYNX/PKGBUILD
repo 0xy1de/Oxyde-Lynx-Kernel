@@ -3,7 +3,7 @@
 
 pkgbase=linux-oxyde-lynx
 pkgname=('linux-oxyde-lynx' 'linux-oxyde-lynx-headers')
-pkgver=6.16.7
+pkgver=6.16.12
 _xanmodrel=xanmod1
 pkgrel=1
 pkgdesc="Oxyde Lynx Kernel (XanMod $pkgver-$_xanmodrel base) — fast, fluid, focused + universal modules [LOCAL SRC]"
