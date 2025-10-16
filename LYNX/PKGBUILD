@@ -28,8 +28,7 @@ _local_src="${startdir}/.."
 prepare() {
   cd "${srcdir}"
   rm -rf linux-xanmod
-  # Link the kernel root (..) into $srcdir as linux-xanmod
-  ln -snf "${_local_src}" linux-xanmod
+  ln -snf "${_local_src}" linux-xanmod  # symlink kernel root into $srcdir
 
   echo ">> _local_src resolves to: ${_local_src}"
   ls -la linux-xanmod | sed 's/^/>> /'
@@ -49,7 +48,6 @@ prepare() {
 
   make olddefconfig
 
-  # Optional: show detected kernelrelease
   _krel="$(make kernelrelease)"
   echo ">> kernelrelease in prepare(): ${_krel}"
 }
@@ -85,13 +83,7 @@ _package_kernel() {
 
   install -Dm644 "${startdir}/99-oxyde-lynx.conf" \
     "${pkgdir}/usr/lib/sysctl.d/99-oxyde-lynx.conf"
-
-package_linux-oxyde-lynx() {
-  install=${pkgbase}.install
-  backup=('usr/lib/sysctl.d/99-oxyde-lynx.conf')
-  _package_kernel
 }
-package_linux-oxyde-lynx-headers() { _package_headers; }}
 
 _package_headers() {
   pkgdesc+=" (headers)"
@@ -101,44 +93,38 @@ _package_headers() {
 
   cd "${srcdir}/linux-xanmod"
 
-  # Compute the exact release string (matches uname -r)
   _krel="$(make kernelrelease)"
   _moddir="${pkgdir}/usr/lib/modules/${_krel}"
   _bdir="${_moddir}/build"
 
-  # Ensure the kernel tree is prepared for external modules
-  # (Module.symvers exists after our build() which built 'modules')
+  install -d "${_moddir}" "${_bdir}"
+
   make prepare
   make modules_prepare
 
-  # Create target dirs
-  install -d "${_bdir}"
-
-  # Core metadata needed by DKMS/out-of-tree modules
   install -Dm644 .config        "${_bdir}/.config"
   [[ -f Module.symvers ]] && install -Dm644 Module.symvers "${_bdir}/Module.symvers" || true
   [[ -f System.map   ]] && install -Dm644 System.map       "${_bdir}/System.map"     || true
   install -Dm644 Makefile       "${_bdir}/Makefile"
 
-  # Copy scripts and headers expected by Kbuild
   cp -a scripts "${_bdir}/"
 
-  # Top-level include/ (generated headers were created by make prepare)
-  mkdir -p "${_bdir}/include"
-  cp -a include/* "${_bdir}/include/"
+  mkdir -p "${_bdir}/include" "${_bdir}/arch/x86"
+  cp -a include/*             "${_bdir}/include/"
+  cp -a arch/x86/Makefile     "${_bdir}/arch/x86/Makefile"
+  cp -a arch/x86/include      "${_bdir}/arch/x86/"
 
-  # Architecture-specific bits (x86_64)
-  mkdir -p "${_bdir}/arch/x86"
-  cp -a arch/x86/Makefile "${_bdir}/arch/x86/Makefile"
-  cp -a arch/x86/include  "${_bdir}/arch/x86/"
-
-  # A few generated include/ artifacts can be missing if the build stopped early.
-  # Ensure they exist (best-effort) by re-running prepare if needed.
   [[ -d include/generated ]] || make prepare
 
-  # Provide the canonical 'source' symlink expected by many build systems
   ln -sr "${_bdir}" "${_moddir}/source"
 }
 
-package_linux-oxyde-lynx()         { _package_kernel; }
-package_linux-oxyde-lynx-headers() { _package_headers; }
+# ---- final package() functions (only defined once) ----
+package_linux-oxyde-lynx() {
+  install=${pkgbase}.install
+  backup=('usr/lib/sysctl.d/99-oxyde-lynx.conf')
+  _package_kernel
+}
+package_linux-oxyde-lynx-headers() {
+  _package_headers
+}
