@@ -1,7 +1,6 @@
 # Maintainer: Nick Chiaravalle <chirv@oxy2k.org>
-# Local-dev PKGBUILD for Oxyde Lynx — uses your local repo (no network fetch)
-# path to the kernel root (one level up from LYNX)
-_local_src="${startdir}/.."
+# Local-dev PKGBUILD for Oxyde Lynx — uses the kernel root one level up (no network fetch)
+
 pkgbase=linux-oxyde-lynx
 pkgname=('linux-oxyde-lynx' 'linux-oxyde-lynx-headers')
 pkgver=6.16.7
@@ -12,9 +11,9 @@ arch=('x86_64')
 url="https://github.com/0xy1de/Oxyde-Lynx-Kernel/"
 license=('GPL2')
 makedepends=('bc' 'kmod' 'inetutils' 'libelf' 'python' 'pahole' 'cpio' 'perl' 'openssl' 'git' 'patch')
-options=('!strip')  # don't strip kernel images
+options=('!strip')
 
-# Only include local helper files here (no remote sources)
+# Helper files only (no remote sources)
 source=(
   "linux-oxyde-lynx.install"
   "linux-oxyde-lynx.preset"
@@ -23,45 +22,36 @@ source=(
 )
 sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
 
-# Path to your local kernel source (adjust if different)
-_local_src="${HOME}/source/oxyde-lynx-kernel"   # should be a full Linux source tree (XanMod base or your fork)
+# Kernel root is the parent of this LYNX/ dir
+_local_src="${startdir}/.."
 
 prepare() {
   cd "${srcdir}"
   rm -rf linux-xanmod
-  ln -s "${_local_src}" linux-xanmod  # points to ../ (kernel root)
+  # Link the kernel root (..) into $srcdir as linux-xanmod
+  ln -snf "${_local_src}" linux-xanmod
+
+  echo ">> _local_src resolves to: ${_local_src}"
+  ls -la linux-xanmod | sed 's/^/>> /'
 
   cd linux-xanmod
-  # use your baseline config, then merge our preset
-  [[ -f .config ]] || { [[ -f /boot/config-$(uname -r) ]] && cp /boot/config-$(uname -r) .config; }
+
+  # Seed .config, then merge our preset
+  if [[ ! -f .config ]]; then
+    [[ -f /boot/config-$(uname -r) ]] && cp /boot/config-$(uname -r) .config
+  fi
+
   if [[ -x scripts/kconfig/merge_config.sh && -f "${startdir}/oxyde-universal.config" ]]; then
     scripts/kconfig/merge_config.sh -m .config "${startdir}/oxyde-universal.config"
   else
     cp "${startdir}/oxyde-universal.config" .config
   fi
-  make olddefconfig
-}
-
-  # Prefer your tree’s version; fall back to provided pkgver if missing
-  if [[ -r Makefile ]]; then
-    _v=$(grep -E '^(VERSION|PATCHLEVEL|SUBLEVEL|EXTRAVERSION)[[:space:]]*=' Makefile | awk '{print $3}' | tr '\n' '.')
-    echo ">> Detected kernel version from Makefile: ${_v}"
-  fi
-
-  # Start from either your repo’s .config or a known-good one, then merge our preset
-  if [[ -f .config ]]; then
-    echo ">> Using existing .config from local repo"
-  elif [[ -f /boot/config-$(uname -r) ]]; then
-    cp /boot/config-$(uname -r) .config
-  fi
-
-  if [[ -x scripts/kconfig/merge_config.sh && -f "${srcdir}/oxyde-universal.config" ]]; then
-    scripts/kconfig/merge_config.sh -m .config "${srcdir}/oxyde-universal.config"
-  elif [[ -f "${srcdir}/oxyde-universal.config" ]]; then
-    cp "${srcdir}/oxyde-universal.config" .config
-  fi
 
   make olddefconfig
+
+  # Optional: show detected kernelrelease
+  _krel="$(make kernelrelease)"
+  echo ">> kernelrelease in prepare(): ${_krel}"
 }
 
 build() {
@@ -77,28 +67,26 @@ _package_kernel() {
 
   cd "${srcdir}/linux-xanmod"
 
-  # Determine release string for /usr/lib/modules/<release>
   _krel="$(make kernelrelease)"
   echo ">> kernelrelease: ${_krel}"
 
-  # Install modules
   make INSTALL_MOD_PATH="${pkgdir}" modules_install
 
-  # Install kernel image, System.map, config
   install -Dm755 arch/x86/boot/bzImage "${pkgdir}/boot/vmlinuz-${pkgbase}"
   install -Dm644 System.map "${pkgdir}/usr/lib/modules/${_krel}/System.map"
   install -Dm644 .config     "${pkgdir}/usr/lib/modules/${_krel}/config"
-  install -Dm644 "${srcdir}/linux-oxyde-lynx.preset" "${pkgdir}/etc/mkinitcpio.d/${pkgbase}.preset"
-  sed -i "s|@@PKGBASE@@|${pkgbase}|g" "${pkgdir}/etc/mkinitcpio.d/${pkgbase}.preset"
 
-  # Record pkgbase
+  install -Dm644 "${startdir}/linux-oxyde-lynx.preset" \
+    "${pkgdir}/etc/mkinitcpio.d/${pkgbase}.preset"
+  sed -i "s|@@PKGBASE@@|${pkgbase}|g" \
+    "${pkgdir}/etc/mkinitcpio.d/${pkgbase}.preset"
+
   echo "${pkgbase}" > "${pkgdir}/usr/lib/modules/${_krel}/pkgbase"
 
-  # Sysctl (applied by systemd-sysctl at boot)
-  install -Dm644 "${srcdir}/99-oxyde-lynx.conf" "${pkgdir}/usr/lib/sysctl.d/99-oxyde-lynx.conf"
+  install -Dm644 "${startdir}/99-oxyde-lynx.conf" \
+    "${pkgdir}/usr/lib/sysctl.d/99-oxyde-lynx.conf"
 
-  # .INSTALL hook (mkinitcpio run after install)
-  install -Dm755 "${srcdir}/linux-oxyde-lynx.install" "${pkgdir}/.INSTALL"
+  install -Dm755 "${startdir}/linux-oxyde-lynx.install" "${pkgdir}/.INSTALL"
 }
 
 _package_headers() {
@@ -124,5 +112,5 @@ _package_headers() {
   ln -sr "${_bdir}" "${pkgdir}/usr/lib/modules/${_krel}/source"
 }
 
-package_linux-oxyde-lynx()        { _package_kernel; }
+package_linux-oxyde-lynx()         { _package_kernel; }
 package_linux-oxyde-lynx-headers() { _package_headers; }
