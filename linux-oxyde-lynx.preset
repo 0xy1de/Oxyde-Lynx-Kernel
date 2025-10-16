@@ -1,0 +1,11 @@
+# mkinitcpio preset for Oxyde Lynx
+ALL_config="/etc/mkinitcpio.conf"
+ALL_kver="/usr/lib/modules/$(uname -r)/build"
+
+PRESETS=('default' 'fallback')
+
+default_image="/boot/initramfs-@@PKGBASE@@.img"
+default_options=""
+
+fallback_image="/boot/initramfs-@@PKGBASE@@-fallback.img"
+fallback_options="-S autodetect"
